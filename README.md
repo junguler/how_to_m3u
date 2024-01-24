@@ -40,7 +40,7 @@ make sure this website is not protected by cloudflare, google or other forms of 
 ## open a stream page
 open a page containing the music your are looking for, lets see if the stream page is already embedded in the page's source or is it dynamically loaded in from another location
 
-i've picked [edm_sessions_us](https://thenonstopradio.com/radio/edm_sessions_us), open the developers tools (inspect element) and go to the network tab, reload the page and it should start population the list with various media, js and other stuff
+i've picked [edm_sessions_us](https://thenonstopradio.com/radio/edm_sessions_us), open the developers tools (inspect element) and go to the network tab, reload the page and it should start populating the list with various media, js and other stuff
 
 none of these items is of our interest since the music is not playing yet, now hit the play button and see the stream link poping up as shown here
 
@@ -48,13 +48,13 @@ copy this link and now lets head to the source of this page and search for this 
 
 `https://s2.radio.co/s30844a0f4/listen`
 
-`ctrl + f` brings up a very long line but our link has `data-audio-url=` suffix and you can see here 
+`ctrl + f` brings up a very long line but our link has `data-audio-url=` prefix like this
 
 `data-audio-url="https://s2.radio.co/s30844a0f4/listen"`
 
-so now lets look for that instead, there are 21 instance of that string in this page and the first string has the link for our example `edm_sessions_us` radio station so take a mental note of this for the future parts
+so now lets look for that instead, there are 21 instances of that string in this page and the first string has the link for our example `edm_sessions_us` radio station so take a mental note of this for the future
 
-now we know this website is not captcha protected and has the stream link embedded, this is the perfect size for scraping, now lets actually get to work
+now we know this website is not captcha protected and has the stream link embedded, this is the perfect site for scraping, now lets actually get to work
 
 <br>
 
@@ -70,7 +70,7 @@ curl -s https://thenonstopradio.com/language > language.html
 curl -s https://thenonstopradio.com/network > network.html
 ```
 
-now we can test things without putting load to the servers and slow things down for ourselves, the `-s` flags stands for silent, it tells `curl` and just do the things we want it to and don't talk to us about it
+now we can test things without putting extra load on the servers and slow things down for ourselves, the `-s` flags stands for silent, it tells `curl` to just do the things we want it to and don't talk to us about it
 
 <br>
 
@@ -97,7 +97,9 @@ javascript:void(0);
 ...
 ```
 
-here is a snippet of what came out of that command, as you can see there are a bunch of stuff we don't need but there are a few lines with the `/genre/` string that look promising, and there a some duplicate lines too, lets `grep` for for every instance of `/genre/` and also remove duplicates
+`htmlq -a href a` tells `htmlq` to find all the links within the page for us
+
+above is a snippet of what came out of that command, as you can see there are a bunch of stuff we don't need but there are a few lines with the `/genre/` string that look promising, and there are some duplicated lines too, lets `grep` for for every instance of `/genre/` and also remove duplicates
 
 ```
 cat genre.html | htmlq -a href a | grep "/genre/" | sort | uniq
@@ -138,7 +140,7 @@ dj
 
 slash `/` is the separator that `awk` uses here to split this piped out and we got the 4th item after an instance of slash which is set in awk by `{print $5}` , this data is also been copied to the `genres.txt` so we can use it later
 
-finding the other categories is also easy since this website uses a similar naming scheme for them, just replace `/genre/` with `/country/` `/language/` `/network/` for other pages and change the raw html and output names accordingly
+finding the other categories is also easy since this website uses a similar naming scheme for all of them, just replace `/genre/` with `/country/` `/language/` `/network/` for other pages and change the raw html and output names accordingly
 
 ```
 cat country.html | htmlq -a href a | grep "/country/" | sort | uniq | awk -F '/' '{print $5}' > country.txt
@@ -209,7 +211,7 @@ so lets do something similar but for our `trance` genre of this website, there a
 for i in "" /{2..3} ; do curl -s https://thenonstopradio.com/genre/trance$i | htmlq -a href a | grep "/radio/" | uniq | awk -F '/' '{print $5}' >> A-trance.txt ; done
 ```
 
-`""` is nothing but we still need it because we don't want to write a new command for each page, as you see everything is the same but the `$i` after the `trance` page was ran 3 times and each time the value of it was different
+the double quotes that don't have anything in them is equel to is nothing but we still need it because we don't want to write a new command for each page, as you see everything is the same but the `$i` after the `trance` page was ran 3 times and each time the value of it was different
 
 `{2..3}` here tells the shell to have a sequence starting with 2 and ending with 3, now this is useless in this case but helpful overall since there are genres with more than 3 pages, for example if i want the first 10 pages of `pop` streams i would do it like this `{2..10}`
 
@@ -220,7 +222,7 @@ i've added a `A-` to the beginning of the new file name so it's easier to find t
 ## now lets do this for all the genres and pages
 the scale is bigger now, lets use that `genre.txt` we made earlier to find all the names for genres
 
-here another for loop as added to the mix which might look a bit complicated but everything will make sense if you pay attention
+here another for loop is added to the mix which might look a bit complicated but everything will make sense if you pay attention
 
 ```
 for i in "" /{2..10} ; do for j in $(cat genre.txt) ; do curl -s https://thenonstopradio.com/genre/$j$i | htmlq -a href a | grep "/radio/" | uniq | awk -F '/' '{print $5}' >> A-$j.txt ; done ; done
@@ -228,7 +230,7 @@ for i in "" /{2..10} ; do for j in $(cat genre.txt) ; do curl -s https://thenons
 
 so what happened? we assigned nothing `"` thru `/10` to `$i` and repeating each genre names `$(cat genre.txt)` to `$j`, so the genre also shown as `$j` is first and the page number also known as `$i` is second in the `curl` command
 
-other stuff is the same, just pipe the data thru each program, extracting only the page name and also saving them by appending `A-` at the beginning, the genre name at the middle and the `.txt` extension at the end
+other stuff is the same, just pipe the data thru each program, extracting only the page name and also saving them by appending `A-` prefix, the genre name at the middle and the `.txt` extension at the end
 
 the same thing can be done to other categories
 
@@ -241,7 +243,7 @@ for i in "" /{2..5} ; do for j in $(cat network.txt) ; do curl -s https://thenon
 <br>
 
 ## scrape the stream titles and link
-now that we have everything ready, lets actually scrape thing, lets take that first page we started with and extract the title and link from it
+now that we have everything ready, lets actually scrape things, lets take that first page we started with and extract the title and link from it
 
 ```
 curl -s https://thenonstopradio.com/radio/edm_sessions_us | grep -oP 'data-audio-url="\K[^"]+' | head -n 1 
@@ -250,7 +252,7 @@ curl -s https://thenonstopradio.com/radio/edm_sessions_us | grep -oP 'data-audio
 https://s2.radio.co/s30844a0f4/listen
 ```
 
-`grep -oP 'data-audio-url="\K[^"]+'` extracts the contents withing the two quotes after every instance of `data-audio-url=` , `head -n 1` only shows the first line of this output since we know the other 20 are not the ones we are looking for
+`grep -oP 'data-audio-url="\K[^"]+'` extracts the contents within the two quotes after every instance of `data-audio-url=` , `head -n 1` only shows the first line of this output since we know the other 20 are not the ones we are looking for
 
 now for getting the title, as you might know html pages have their most prominent titles inside a `h1` tag, so using `htmlq` lets extract it
 
@@ -272,13 +274,13 @@ https://s2.radio.co/s30844a0f4/listen
 
 so we need to scrape each page twice, to keep things as smooth as possible and not overburden the server lets first save each page as a local copy, get the title, then the stream link and alternate them to have a proper `m3u` playlist
 
-i will call this temporary file `mep1`, lets also append another `A` to the output text files to know which one is which
+i will call this temporary file `mep1`, lets also append another `A` prefix to the output text files to know which one is which
 
 ```
 for i in A-*.txt ; do for j in $(cat $i) ; do curl -s https://thenonstopradio.com/radio/$j > mep1 ; cat mep1 | htmlq -t h1 | awk '{print "#EXTINF:-1,"$0}' >> A$i ; cat mep1 | grep -oP 'data-audio-url="\K[^"]+' | awk NF | head -n 1 | sed 's|https://thenonstopradio.com/play?url=||g' | sed 's/\;//g' | sed '/^$/d' >> A$i ; echo -e "$i - $j" ; done ; done
 ```
 
-there is quite a lot going on so unpack it:
+there is quite a lot going on so lets unpack it:
 
 `for i in A-*.txt` find the text files starting with `A-` these are the genre, country, language and network names
 
@@ -286,7 +288,7 @@ there is quite a lot going on so unpack it:
 
 `curl -s https://thenonstopradio.com/radio/$j > mep1` save the temporary file
 
-`cat mep1 | htmlq -t h1 | awk '{print "#EXTINF:-1,"$0}' >> A$i` cat the temporary file and extract the title, append a `#EXTINF:-1,` to the begining of it and send it to the text file
+`cat mep1 | htmlq -t h1 | awk '{print "#EXTINF:-1,"$0}' >> A$i` cat the temporary file and extract the title, append a `#EXTINF:-1,` to the begining of it and send it to the new text file
 
 `cat mep1 | grep -oP 'data-audio-url="\K[^"]+' | awk NF | head -n 1 | sed 's|https://thenonstopradio.com/play?url=||g' | sed 's/\;//g' | sed '/^$/d' >> A$i` send the stream link to the text file as well
 
@@ -295,7 +297,7 @@ there is quite a lot going on so unpack it:
 <br>
 
 ## finishing touches
-some stream might not have a link attached to them, lets exclude them from our playlists, lets use `grep` and `awk` for this
+some streams might not have a link attached to them, lets exclude them from our playlists, lets use `grep` and `awk` for this
 
 ```
 for i in AA-*.txt ; do cat $i | awk '!seen[$0]++' | grep -B1 "http" | grep -A1 "EXTINF" | awk 'length>4' > A$i ; echo -e $i ; done
@@ -305,8 +307,7 @@ find all output text files that start with `AA-`, repeat them, using awk remove 
 
 finally use awk to remove items that are only 4 character or less in length, now our new file names have `AAA-` at the beginning
 
-
-now lets convert this text files to m3u format by adding `#EXTM3U` to their first line
+now lets convert these text files to m3u format by adding `#EXTM3U` to their first line
 
 ```
 for i in AAA-*.txt ; do sed '1s/^/#EXTM3U\n/' $i > $i.m3u ; done
